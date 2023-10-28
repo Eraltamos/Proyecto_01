@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import pandas as pd
 
 # Cargar los datos desde el archivo CSV (suponiendo que ya los tienes en un DataFrame)
-steam_games_df = pd.read_csv("steam_games.csv")
+steam_games_df = pd.read_parquet("steam_games.parquet")
 
 # Crear una instancia de la aplicación FastAPI
 app = FastAPI()
