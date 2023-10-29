@@ -50,7 +50,7 @@ def developer(request: DeveloperRequest):
 def UserForGenre(request: GenreRequest):
     genero = request.genero
 
-    # Cargar los archivos Parquet y seleccionar las columnas necesarias
+    # Cargar los archivos Parquet una vez al inicio de la aplicación
     steam_games_genre_df = pq.read_table("dataset/steam_games_genre.parquet", columns=['item_id', 'genres']).to_pandas()
     user_items_list_df = pq.read_table("dataset/user_items_list.parquet", columns=['item_id', 'steam_id', 'playtime_forever']).to_pandas()
     steam_games_df = pq.read_table("dataset/steam_games.parquet", columns=['item_id', 'release_year']).to_pandas()
@@ -71,25 +71,25 @@ def UserForGenre(request: GenreRequest):
     if genre_playtime.empty:
         return {"error": "No hay datos de horas jugadas para este género"}
 
-    # Utilizar merge para combinar genre_playtime con steam_games_df
-    merged_df = pd.merge(genre_playtime[['item_id', 'steam_id', 'playtime_forever']], steam_games_df, on='item_id', how='inner')
-
-    # Fusionar merged_df con user_items_df para obtener el user_id
-    merged_df = pd.merge(merged_df, user_items_df, on='steam_id', how='inner')
-
     # Agregar eficientemente las horas jugadas por usuario y año
-    user_playtime_by_year = merged_df.groupby(['user_id', 'release_year']).agg(Horas=('playtime_forever', 'sum'))
+    user_hours = (genre_playtime
+                  .merge(steam_games_df, on='item_id')
+                  .merge(user_items_df, left_on='steam_id', right_on='steam_id')
+                  .groupby(['user_id', 'release_year'])
+                  .agg(Horas=('playtime_forever', 'sum'))
+                  .reset_index()
+                  )
 
     # Encontrar el usuario con más horas jugadas para el género
-    user_with_most_playtime = user_playtime_by_year.groupby('user_id')['Horas'].sum().idxmax()
+    user_with_most_playtime = user_hours.groupby('user_id')['Horas'].sum().idxmax()
 
     # Filtrar las horas jugadas por usuario
-    user_hours = user_playtime_by_year.loc[user_with_most_playtime]
+    user_hours = user_hours[user_hours['user_id'] == user_with_most_playtime]
 
     # Crear el resultado final
     result = {
         "Usuario con más horas jugadas para Género " + genero: user_with_most_playtime,
-        "Horas jugadas": user_hours.reset_index().to_dict(orient='records')
+        "Horas jugadas": user_hours[['release_year', 'Horas']].to_dict(orient='records')
     }
 
     return result
