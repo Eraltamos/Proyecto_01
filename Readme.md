@@ -1,58 +1,46 @@
-  
-  
-# <center>Proyecto individual Nro 1</center>  
 
-# <center><small>***Machine Learning Operations***</small></center>  
+# <center><small>***Proyecto Machine Learning Operations - Steam***</small></center>  
 
-Para el presente proyecto se entrego un dataset con los siguientes archivos:
+Para el presente proyecto se entrego un archivo markdown llamado **`Solicitud`** el cual contiene los lineamientos generales de trabajo solicitados, el link para el dataset asi como su diccionario lo encontraremos al final de este archivo.
+
+El dataset contiene los siguientes archivos: 
+
 1. steam_games.json.gz
 2. user_reviews.json.gz
 3. users_items.json.gz  
 
-Con el objetivo de desplegar una api con fastAPI en el servicio render.com, el cual solo te da un espacio limitado de 512mb. Esta api debe disponibilizar los datos a 5 consultas proporcionadas, ademas de que posteriormente tambien se propone realizar un sistema de recomendacion usando similitud coseno.  
+Para empezar nos socilitan hacer las transformaciones necesarias al dataset asi tambien como una ingeniería de características. Todo esto se realizo en el archivo **`01_ETL.ipynb`**.<br>
+Como puntos importantes en esta parte tenemos:
++ Algunos de los archivos proporcionados no eran objetos validos **json** por lo que se utilizo la `biblioteca ast` para poder leerlos facilitando su lectura y ahorrando tiempo al ya no necesitar transformar los **json** no validos en validos de forma manual.
++ Dos archivos tenian la presencia de de columnas anidadas por lo que estas fueron tratadas de tal forma que para desanidarlas se crearon 2 archivos adicionales para luego tener un total de 5 archivos que podemos utilizar.
++ Se prosiguio con normalidad en el tratameinto de estos archivos eliminando filas vacias y duplicadas, tambien se trataron aquellas filas que tenian valores nulos.
++ En cuanto a la ingenieria de caracteristicas se destaca la transformación de la columna review del dataframe user_reviews puesto que se uso SentimentIntensityAnalyzer de la `biblioteca nltk`, para ello se el `modelo VADER` puesto que el texto de la columna review usaba lenguaje con emoticonos y mas informal por lo que este modelo era el mas adecuado.
++ Tambien podemos mencionar la extraccion de información de las columnas para una mejor pulcritud de los dataframes, como ejemplos tenemos la extraccion de los años en fechas o la estandarizacion de la columna que contiene precios del dataframe steam_games
++ Otro punto a destacar es la disminución de los generos del dataframe steam_games_genres puesto que luego se usaran estos datos para el sistema de recomendación por lo que es importante la reduccion de estas dimensiones para que dicho sistema de no sea demasiado pesado. 
 
-A continuación se explicara como se desarrollo el presente proyecto:
+Luego nos socilicitan hacer una EDA en general para ver la presencia de outliers y ver si es necesario que sean borrados. Este paso lo podemos encontrar en **`02_ETL_EDA.ipynb`**.<br>
+Como puntos importantes en esta parte tenemos:
++ Se establecen las relaciones de los archivos que se ven en el siguiente cuadro:
 
-## ETL del dataset
-
-- Para empezar se hizo un proceso de ETL a los archivos proporcionados. En primer lugar se hizo la descompresión del formato json.gz a json. Si bien es posible trabajar el formato directamente con json.gz es importantes destacar que esto se realizar cuando los archivos tienen el formato json valido, caso que no es cumplido en el presente situación por lo que se abordo en este enfoque.  
-- Posteriormente se hizo la transformacion a csv de los archivos json resultantes del anterior proceso, es importante destacar que los archivos eran json anidados por lo que en el caso de steam_games.json y user_items.json resulto en que cada uno de estos dio 2 csv, para un total de 5 archivos tipo csv. 
-- Para informacion mas detallada tenemos el archivo ***"01 ETL_Dataset.ipynb"***.
-
-## EDA del dataset   
-
-- Para este paso se termino de limpiar las tablas tratando con los valores nulos y duplicados, los dataframes resultantes de esta fase fueron guardados en formato .parquet  
-- Para informacion mas detallada tenemos el archivo ***"02 EDA_Parte 1.ipynb"***.  
-
-## Analisis  
-
-Gracias al anterior tratamiento a continuacion podemos observar como se relacionan los archivos:  
-|steam_games.parquet|steam_games_genre.parquet|user_items.parquet|user_items_list.parquet|user_reviews.parquet|
+|steam_games|steam_games_genres|user_items|user_items_list|user_reviews|
 |-|-|-|-|-|
 | | |***steam_id***|***steam_id***|***steam_id***|
 |***item_id***|***item_id***||***item_id***|***item_id***|
 |item_name|genres|user_id|playtime_forever|posted|
-|developer|user_counts|items_count| |recommend|
+|developer||items_count| |recommend|
 |release_year| | | |sentiment_analysis|
-|price| | | | |  
+|price| | | |review|
++ Se encuentran outliers en steam_games en la columna Year que es tratada
++ Tambien encontramos que la columna price tiene demasiados elementos que se consideran outliers por lo que buscaremos que la distribución de esta columna se asemeje a una distribución normal mediante el `método boxcox`, luego obtenemos los outliers resultantes despues de la transformación. Una vez realizado este procedimiento se coteja  que los outliers no son producto de data errada por lo que no se realiza un cambio posterior, este paso tambien se realiza con la columna items_count de user_items y arroja el mismo resultado.
 
-Como podemos observar en el cuadro las tablas se relacionan principalmente por 2 columnas que son item_id y steam_id que seran las columnas predeterminadas por donde se haran las relaciones para resolver las distintas solicitudes que pueda haber.  
+Tambien nos solicitan el desarrollo de una api con FastAPI, asi tambien como el desarrollo de 5 funciones que deben poder ser consumidas por esta api, para ello primero se dasarrollaron las funciones por separado y las podemos encontrar asi en el archivo **`03_Funciones.ipynb`**. Luego se junta todo en el archivo **`main.py`** y en este mismo archivo es donde se arma la API y se despliega de forma local con Uvicorn.
 
-## Resolución de solicitudes  
+Luego para el despliegue de esta api se usa el servicio de **`render.com`**.
+Para este punto es importante tener en cuenta que el servicio solo ofrece un espacio limitado a 512 mb en su versión gratuita por lo que en las funciones del archivo **`main.py`** se usa lazy charge en las funciones para que de esa forma solo se cargue lo necesario para cada solicitud y asi no se sobrecargue el sistema.
 
-Para empezar a resolver las solicitudes es importante tener en cuenta la limitada memoria que disponemos en el servicio 'render.com'. Bajo esa premisa es importante que el codigo proporcionado no solo ester ordenado, sino tambien sea los mas eficiente posible para asi evitar sobrecargar el servicio.
+Para el sistema de recomendacion item-item se uso `similitud coseno` y se usaron como base los generos del videojuego. El desarrollo de este paso lo podemos encontrar en el archivo **`04_ML.ipynb`**
 
-Es por ello que en el presente repositorio encontraremos 2 archivos principales que se pueden desplegar:
-
-- ***"main.py"***: Este archivo es el que se uso para ser desplegado en 'render.com' y contiene los 5 endpoints solicitados. Se requieren tres aclaraciones en este punto:
-
-    - Primero: que la solicitud /userforgenre tumba el servidor por lo que no es funcional si consideramos las limitaciones de memoria
-
-    - Segundo: La solicitud de Machine Learning no se incluyo en este archivo tambien por la limitación de la memoria
-
-    - Tercero: para la elaboración de este archivo se uso un enfoque de lazy load o carga diferida para cargar solo necesario cuando se solicite y asi en la medida de lo posible no tumbar el servidor
-
-- ***"final_main.py"***: En este archivo encontraremos los 5 endpoints solicitados y tambien el endpoint del sistema de recomendación item-item, en este archivo ya no encontraremos el codigo tomando en cuenta la carga diferida por lo que se puede tomar en general este archivo como el caso en donde no haya limitaciones de memoria
+El archivo **`final_main.py`** contiene no solo las funciones del archivo **`main.py`** sino tambien el sistema de recomendación item-item, la razon para tener dos archivos main es debido a que, como ya se menciono, solo se cuenta con un espacio de 512 mb por lo que entrenar el modelo con esas limitaciones no es posible, por lo que el archivo con el sistema de recomendacion necesita una mayor cantidad de espacio.
 
 Para la demostración correspondiente podemos dirigirnos al siguiente [link](https://drive.google.com/file/d/1RUO4YM6KfashwXnWBRq074qTg-qqA7Kz/view?usp=drive_link)
   
@@ -61,5 +49,6 @@ Para la demostración correspondiente podemos dirigirnos al siguiente [link](htt
   
 Contacto:  
 Erwin Alain Felix Tayro Mosqueira  
-erwin.aftm@gmail.com
+erwin.aftm@gmail.com<br>
+[Linkedin](https://www.linkedin.com/in/alain-tayro/)
 </div>

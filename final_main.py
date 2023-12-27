@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 from sklearn.metrics.pairwise import cosine_similarity
@@ -10,34 +11,17 @@ user_items_df = pq.read_table("dataset/user_items.parquet").to_pandas()
 user_items_list_df = pq.read_table("dataset/user_items_list.parquet").to_pandas()
 user_reviews_df = pq.read_table("dataset/user_reviews.parquet").to_pandas()
 steam_games_df = pq.read_table("dataset/steam_games.parquet").to_pandas()
-steam_games_genre_df = pq.read_table("dataset/steam_games_genre.parquet").to_pandas()
+steam_games_genre_df = pq.read_table("dataset/steam_games_genres.parquet").to_pandas()
+
+# Entrenamos la matriz para la recomendacion similitud coseno:
+
+steam_games_genres_matrix = steam_games_genre_df.drop(columns=['item_id'])
+similarity_matrix = cosine_similarity(steam_games_genres_matrix)
 
 
-# Preparamos la matriz de características para el machine learning
-
-steam_games_genre = steam_games_genre_df.groupby('item_id')['genres'].apply(list).reset_index()
-# Obtener todas las categorías únicas de "genres"
-unique_genres = set()
-for genres_list in steam_games_genre['genres']:
-    unique_genres.update(genres_list)
-
-# Crear columnas one-hot para cada género único
-for genre in unique_genres:
-    steam_games_genre[genre] = steam_games_genre['genres'].apply(lambda x: 1 if genre in x else 0)
-
-# Eliminar la columna original de "genres"
-steam_games_genre = steam_games_genre.drop('genres', axis=1)
-# Obtén las filas que representan tus juegos (ignora la columna "item_id" si es necesario)
-juegos = steam_games_genre.drop(columns=['item_id'])
-# Calcula la similitud del coseno
-similarities = cosine_similarity(juegos)
-# Convierte la matriz de similitud en un DataFrame para que sea más fácil de trabajar
-similarities_df = pd.DataFrame(similarities, columns=steam_games_genre['item_id'], index=steam_games_genre['item_id'])
-
-
-# Función para obtener la cantidad de items y porcentaje de contenido gratuito por año
-@app.get('/developer')
-def developer(developer: str):
+# 1 Función para obtener la cantidad de items y porcentaje de contenido gratuito por año
+@app.get('/DeveloperFreeContent')
+def DeveloperFreeContent(developer: str):
 
     # Filtrarmos las filas que coinciden con el desarrollador
     developer_df = steam_games_df[steam_games_df['developer'] == developer]
@@ -59,9 +43,9 @@ def developer(developer: str):
     return result
 
 
-# Función para obtener la cantidad de dinero gastado, %de recomendacion y numero de items del usuario
-@app.get("/userdata")
-def get_user_data(user_id: str):
+# 2 Función para obtener la cantidad de dinero gastado, %de recomendacion y numero de items del usuario
+@app.get("/UserData")
+def UserData(user_id: str):
 
     # Filtramos la fila correspondiente al user_id en user_items_df
     user_row = user_items_df[user_items_df['user_id'] == user_id]
@@ -106,12 +90,12 @@ def get_user_data(user_id: str):
     return result
 
 
-# Función para obtener el usuario con mas cantidad de horas jugadas por año de un genero
-@app.get('/userforgenre')
+#  3 Función para obtener el usuario con mas cantidad de horas jugadas por año de un genero
+@app.get('/UserForGenre')
 def UserForGenre(genero: str):
 
     # Filtramos los juegos que pertenecen al género especificado
-    games_in_genre = steam_games_genre_df[steam_games_genre_df['genres'].str.contains(genero, case=False)]
+    games_in_genre = steam_games_genre_df[steam_games_genre_df[genero] == 1]
 
     # Error en caso de que no haya el genero especificado
     if games_in_genre.empty:
@@ -150,9 +134,9 @@ def UserForGenre(genero: str):
     return result
 
 
-# Función para obtener el top 3 de desarrolladoras por año
-@app.get("/best_developer_year")
-def get_best_developers(año: int):
+# 4 Función para obtener el top 3 de desarrolladoras por año
+@app.get("/UsersBestDeveloper")
+def UsersBestDeveloper(año: int):
 
     # Filtramos el DataFrame de steam_games para obtener los juegos del año dado
     games_of_year = steam_games_df[steam_games_df['release_year'].astype(int) == año]
@@ -182,9 +166,9 @@ def get_best_developers(año: int):
     return result
 
 
-# Función para obtener la percepcion segun sentiment_analysis de una desarrolladora en cuanto a positivos o negativos
-@app.get("/developer_reviews_analysis")
-def get_developer_reviews_analysis(developer: str):
+# 5 Función para obtener la percepcion segun sentiment_analysis de una desarrolladora en cuanto a positivos o negativos
+@app.get("/DeveloperSentimentAnalysis")
+def DeveloperSentimentAnalysis(developer: str):
 
     # Filtramos steam_games para obtener los juegos del desarrollador
     games_of_developer = steam_games_df[steam_games_df['developer'] == developer]
@@ -198,43 +182,43 @@ def get_developer_reviews_analysis(developer: str):
     if reviews_of_developer.empty:
         return {"error": "No hay reseñas para juegos de esta desarrolladora"}
 
-    # Filtramos las reseñas con sentiment_analysis igual a 2 (positivo) y 0 (negativo)
+    # Paso 3: Filtrar las reseñas con sentiment_analysis igual a 2 (positivo) y 0 (negativo)
     positive_reviews = reviews_of_developer[reviews_of_developer['sentiment_analysis'] == 2]
+    neutral_reviews = reviews_of_developer[reviews_of_developer['sentiment_analysis'] == 1]
     negative_reviews = reviews_of_developer[reviews_of_developer['sentiment_analysis'] == 0]
 
-    # Contamos la cantidad de reseñas positivas y negativas
+    # Paso 4: Contar la cantidad de reseñas positivas y negativas
     positive_count = len(positive_reviews)
+    neutral_count = len(neutral_reviews)
     negative_count = len(negative_reviews)
 
-    # Creamos el diccionario de resultado
-    result = {developer: {"Negative": negative_count, "Positive": positive_count}}
+    # Paso 5: Crear el diccionario de resultado
+    result = {developer: {"Negative": negative_count, "Neutral": neutral_count, "Positive": positive_count}}
 
     return result
 
 
-@app.get("/recommend")
-async def get_recommendations(item_name: str):
-    # Buscar el item_id correspondiente al item_name
-    item = steam_games_df[steam_games_df['item_name'] == item_name]
-    if item.empty:
+# 6 Función para obtener top 5 de juegos similares al juego ingresado segun los generos a los que pertenece
+@app.get("/GameRecomendationItemItem")
+def GameRecomendationItemItem(game, top_n=5):
+
+    # Paso 1: Filtrar el DataFrame de steam_games para obtener el id del juego dado
+    game_recomendation = steam_games_df[steam_games_df['item_name'] == game]
+
+    if game_recomendation.empty:
         return {"error": "Juego no encontrado"}
+    
+    game_id = game_recomendation['item_id'].iloc[0]
 
-    item_id = item['item_id'].values[0]
+    juego_index = steam_games_genre_df[steam_games_genre_df['item_id'] == game_id].index[0]
+    sim_scores = list(enumerate(similarity_matrix[juego_index]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    top_games_indices = [i[0] for i in sim_scores[1:int(top_n)+1]]
 
-    # Verificar si el item_id se encuentra en los datos de similitud
-    if item_id not in similarities_df.columns:
-        return {"error": "El juego no se encuentra en la base de datos de similitud"}
+    # Obtener los nombres de los juegos recomendados
+    result = steam_games_df.iloc[top_games_indices]['item_name'].tolist()
 
-    # Obtener juegos similares
-    similar_games = similarities_df[item_id].sort_values(ascending=False)
-    similar_games = similar_games.iloc[1:6]  # Excluye el juego en sí mismo y toma los siguientes 5 más similares
-
-    # Encuentra los nombres correspondientes en steam_games_df
-    recommended_games = similar_games.reset_index()
-    recommended_game_names = steam_games_df[steam_games_df['item_id'].isin(recommended_games['item_id'])]['item_name']
-
-    return {"item_name": item_name, "recommended_games": recommended_game_names.tolist()}
-
+    return result
 
 
 if __name__ == "__main__":

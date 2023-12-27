@@ -1,15 +1,17 @@
 from fastapi import FastAPI
+import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Crear una instancia de la aplicación FastAPI
 app = FastAPI()
 
 
-# Función para obtener la cantidad de items y porcentaje de contenido gratuito por año
-@app.get('/developer')
-def developer(developer: str):
-    
+# 1 Función para obtener la cantidad de items y porcentaje de contenido gratuito por año
+@app.get('/DeveloperFreeContent')
+def DeveloperFreeContent(developer: str):
+
     # Cargamos los archivos Parquet y seleccionamos las columnas necesarias
     steam_games_df = pq.read_table("dataset/steam_games.parquet", columns=['item_id', 'developer', 'release_year', 'price']).to_pandas()
 
@@ -33,9 +35,9 @@ def developer(developer: str):
     return result
 
 
-# Función para obtener la cantidad de dinero gastado, %de recomendacion y numero de items del usuario
-@app.get("/userdata")
-def get_user_data(user_id: str):
+# 2 Función para obtener la cantidad de dinero gastado, %de recomendacion y numero de items del usuario
+@app.get("/UserData")
+def UserData(user_id: str):
 
     # Cargamos los archivos parquet y seleccionamos las columnas necesarias
     user_items_df = pq.read_table("dataset/user_items.parquet", columns=['user_id', 'items_count', 'steam_id']).to_pandas()
@@ -86,18 +88,18 @@ def get_user_data(user_id: str):
     return result
 
 
-# Función para obtener el usuario con mas cantidad de horas jugadas por año de un genero
-@app.get('/userforgenre')
+#  3 Función para obtener el usuario con mas cantidad de horas jugadas por año de un genero
+@app.get('/UserForGenre')
 def UserForGenre(genero: str):
 
     # Cargamos los archivos parquet y las columnas correspondientes
-    steam_games_genre_df = pq.read_table("dataset/steam_games_genre.parquet", columns=['item_id', 'genres']).to_pandas()
+    steam_games_genre_df = pq.read_table("dataset/steam_games_genres.parquet", columns=['item_id', genero]).to_pandas()
     user_items_list_df = pq.read_table("dataset/user_items_list.parquet", columns=['item_id', 'steam_id', 'playtime_forever']).to_pandas()
     steam_games_df = pq.read_table("dataset/steam_games.parquet", columns=['item_id', 'release_year']).to_pandas()
     user_items_df = pq.read_table("dataset/user_items.parquet", columns=['steam_id', 'user_id']).to_pandas()
 
     # Filtramos los juegos que pertenecen al género especificado
-    games_in_genre = steam_games_genre_df[steam_games_genre_df['genres'].str.contains(genero, case=False)]
+    games_in_genre = steam_games_genre_df[steam_games_genre_df[genero] == 1]
 
     # Error en caso de que no haya el genero especificado
     if games_in_genre.empty:
@@ -136,9 +138,9 @@ def UserForGenre(genero: str):
     return result
 
 
-# Función para obtener el top 3 de desarrolladoras por año
-@app.get("/best_developer_year")
-def get_best_developers(año: int):
+# 4 Función para obtener el top 3 de desarrolladoras por año
+@app.get("/UsersBestDeveloper")
+def UsersBestDeveloper(año: int):
 
     # Cargamos los archivos Parquet y seleccionar las columnas necesarias
     steam_games_df = pq.read_table("dataset/steam_games.parquet", columns=['item_id', 'release_year', 'developer']).to_pandas()
@@ -172,9 +174,9 @@ def get_best_developers(año: int):
     return result
 
 
-# Función para obtener la percepcion segun sentiment_analysis de una desarrolladora en cuanto a positivos o negativos
-@app.get("/developer_reviews_analysis")
-def get_developer_reviews_analysis(developer: str):
+# 5 Función para obtener la percepcion segun sentiment_analysis de una desarrolladora en cuanto a positivos o negativos
+@app.get("/DeveloperSentimentAnalysis")
+def DeveloperSentimentAnalysis(developer: str):
 
     # Cargar los archivos parquet
     steam_games_df = pq.read_table("dataset/steam_games.parquet", columns=['item_id', 'developer']).to_pandas()
@@ -192,16 +194,18 @@ def get_developer_reviews_analysis(developer: str):
     if reviews_of_developer.empty:
         return {"error": "No hay reseñas para juegos de esta desarrolladora"}
 
-    # Filtramos las reseñas con sentiment_analysis igual a 2 (positivo) y 0 (negativo)
+    # Paso 3: Filtrar las reseñas con sentiment_analysis igual a 2 (positivo) y 0 (negativo)
     positive_reviews = reviews_of_developer[reviews_of_developer['sentiment_analysis'] == 2]
+    neutral_reviews = reviews_of_developer[reviews_of_developer['sentiment_analysis'] == 1]
     negative_reviews = reviews_of_developer[reviews_of_developer['sentiment_analysis'] == 0]
 
-    # Contamos la cantidad de reseñas positivas y negativas
+    # Paso 4: Contar la cantidad de reseñas positivas y negativas
     positive_count = len(positive_reviews)
+    neutral_count = len(neutral_reviews)
     negative_count = len(negative_reviews)
 
-    # Creamos el diccionario de resultado
-    result = {developer: {"Negative": negative_count, "Positive": positive_count}}
+    # Paso 5: Crear el diccionario de resultado
+    result = {developer: {"Negative": negative_count, "Neutral": neutral_count, "Positive": positive_count}}
 
     return result
 
