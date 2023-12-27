@@ -2,7 +2,6 @@ from fastapi import FastAPI
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
-from sklearn.metrics.pairwise import cosine_similarity
 
 # Crear una instancia de la aplicación FastAPI
 app = FastAPI()
