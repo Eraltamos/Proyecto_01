@@ -42,7 +42,7 @@ Para el sistema de recomendacion item-item se uso `similitud coseno` y se usaron
 
 El archivo **`final_main.py`** contiene no solo las funciones del archivo **`main.py`** sino tambien el sistema de recomendación item-item, la razon para tener dos archivos main es debido a que, como ya se menciono, solo se cuenta con un espacio de 512 mb por lo que entrenar el modelo con esas limitaciones no es posible, por lo que el archivo con el sistema de recomendacion necesita una mayor cantidad de espacio.
 
-Para la demostración correspondiente podemos dirigirnos al siguiente [link](https://drive.google.com/file/d/1RUO4YM6KfashwXnWBRq074qTg-qqA7Kz/view?usp=drive_link)
+Para la demostración correspondiente podemos dirigirnos al siguiente [link](https://drive.google.com/file/d/1pwKceWnqWMxy79boBnTeCNiYiUh3dA0c/view)
   
 
 <div style="text-align: right;">
