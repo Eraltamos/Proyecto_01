@@ -9,16 +9,16 @@ El dataset contiene los siguientes archivos:
 2. user_reviews.json.gz
 3. users_items.json.gz  
 
-Para empezar nos socilitan hacer las transformaciones necesarias al dataset asi tambien como una ingeniería de características. Todo esto se realizo en el archivo **`01_ETL.ipynb`**.<br>
+Para empezar nos solicitan hacer las transformaciones necesarias al dataset asi tambien como una ingeniería de características. Todo esto se realizo en el archivo **`01_ETL.ipynb`**.<br>
 Como puntos importantes en esta parte tenemos:
 + Algunos de los archivos proporcionados no eran objetos validos **json** por lo que se utilizo la `biblioteca ast` para poder leerlos facilitando su lectura y ahorrando tiempo al ya no necesitar transformar los **json** no validos en validos de forma manual.
 + Dos archivos tenian la presencia de de columnas anidadas por lo que estas fueron tratadas de tal forma que para desanidarlas se crearon 2 archivos adicionales para luego tener un total de 5 archivos que podemos utilizar.
 + Se prosiguio con normalidad en el tratameinto de estos archivos eliminando filas vacias y duplicadas, tambien se trataron aquellas filas que tenian valores nulos.
-+ En cuanto a la ingenieria de caracteristicas se destaca la transformación de la columna review del dataframe user_reviews puesto que se uso SentimentIntensityAnalyzer de la `biblioteca nltk`, para ello se el `modelo VADER` puesto que el texto de la columna review usaba lenguaje con emoticonos y mas informal por lo que este modelo era el mas adecuado.
-+ Tambien podemos mencionar la extraccion de información de las columnas para una mejor pulcritud de los dataframes, como ejemplos tenemos la extraccion de los años en fechas o la estandarizacion de la columna que contiene precios del dataframe steam_games
++ En cuanto a la ingenieria de caracteristicas se destaca la transformación de la columna review del dataframe user_reviews puesto que se uso SentimentIntensityAnalyzer de la `biblioteca nltk`, para ello se uso el `modelo VADER` puesto que el texto de la columna review usaba un lenguaje con emoticonos y mas informal por lo que este modelo era el mas adecuado.
++ Tambien podemos mencionar la extraccion de información de las columnas para una mejor pulcritud de los dataframes, como ejemplos tenemos la extraccion de los años en fechas o la estandarización de la columna que contiene precios del dataframe steam_games.
 + Otro punto a destacar es la disminución de los generos del dataframe steam_games_genres puesto que luego se usaran estos datos para el sistema de recomendación por lo que es importante la reduccion de estas dimensiones para que dicho sistema de no sea demasiado pesado. 
 
-Luego nos socilicitan hacer una EDA en general para ver la presencia de outliers y ver si es necesario que sean borrados. Este paso lo podemos encontrar en **`02_ETL_EDA.ipynb`**.<br>
+Luego nos solicitan hacer una EDA en general para ver la presencia de outliers y ver si es necesario que sean borrados. Este paso lo podemos encontrar en **`02_ETL_EDA.ipynb`**.<br>
 Como puntos importantes en esta parte tenemos:
 + Se establecen las relaciones de los archivos que se ven en el siguiente cuadro:
 
@@ -49,6 +49,6 @@ Para la demostración correspondiente podemos dirigirnos al siguiente [link](htt
   
 Contacto:  
 Erwin Alain Felix Tayro Mosqueira  
-erwin.aftm@gmail.com<br>
+alain.tayromosqueira@gmail.com<br>
 [Linkedin](https://www.linkedin.com/in/alain-tayro/)
 </div>
